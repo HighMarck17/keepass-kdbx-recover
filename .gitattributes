@@ -1,0 +1,9 @@
+# Normalize line endings to LF for all text files.
+* text=auto eol=lf
+
+# Binary files git should not touch.
+*.kdbx binary
+*.key binary
+*.keyx binary
+*.png binary
+*.ico binary

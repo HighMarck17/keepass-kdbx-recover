@@ -1,0 +1,33 @@
+# keepass-kdbx-recover configuration. Edit these values, then run.
+# Only recover databases you own or are authorized to recover.
+
+[database]
+path = "" # path to your .kdbx file
+keyfile = "" # optional keyfile; empty if unused
+
+[recovery]
+workers = 0 # 0 = auto; Argon2 is memory-hard
+progress_interval = 2.0 # seconds between updates
+
+[mask]
+# hashcat-style: ?l lower ?u upper ?d digit ?s symbol ?a any
+enabled = false
+pattern = "Summer?a?a?a?a"
+
+[fragments]
+# remembered pieces recombined into candidates
+enabled = true
+pieces = ["1", "2", "3", "fill"]
+permutations = true # try all orders
+case_variants = false # also try case variants
+fixed_prefix = "" # piece used first; empty disables
+min_fragments = 1 # 1 tries single pieces too
+
+[wordlist]
+enabled = false
+path = ""
+
+[export]
+# write candidates for hashcat (worthwhile only for AES-KDF)
+enabled = false
+path = "candidates.txt"

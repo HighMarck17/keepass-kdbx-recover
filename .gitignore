@@ -1,0 +1,33 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Build artifacts
+build/
+dist/
+*.spec.bak
+
+# User data - never commit real databases, keyfiles, wordlists, or candidate dumps
+*.kdbx
+*.key
+*.keyx
+candidates.txt
+config.toml
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# PyInstaller build log
+build_exe.log
+*.log
