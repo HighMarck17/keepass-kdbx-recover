@@ -14,6 +14,8 @@ from typing import Any
 
 import tomlkit
 
+from .mask import find_unknown_placeholders
+
 PathArg = str | PathLike[str]
 
 
@@ -123,6 +125,11 @@ def validate(cfg: Config) -> list[str]:
             errors.append("mask.pattern must be a string.")
         elif not cfg.mask.pattern:
             errors.append("Mask mode is enabled but the pattern is empty.")
+        elif unknown := find_unknown_placeholders(cfg.mask.pattern):
+            errors.append(
+                f"Unknown mask placeholder(s): {', '.join(dict.fromkeys(unknown))}. "
+                "Use ?l ?u ?d ?s ?a, or ?? for a literal question mark."
+            )
 
     if cfg.fragments.enabled:
         if not isinstance(cfg.fragments.pieces, list):
@@ -131,6 +138,8 @@ def validate(cfg: Config) -> list[str]:
             errors.append("Fragments mode is enabled but no fragment pieces were given.")
         elif not all(isinstance(p, str) for p in cfg.fragments.pieces):
             errors.append("Every fragment piece must be a string.")
+        elif cfg.fragments.fixed_prefix and cfg.fragments.fixed_prefix not in cfg.fragments.pieces:
+            errors.append("fragments.fixed_prefix must be one of the fragment pieces.")
         if not _is_int(cfg.fragments.min_fragments):
             errors.append("fragments.min_fragments must be an integer.")
         elif cfg.fragments.min_fragments < 1:

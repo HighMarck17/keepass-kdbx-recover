@@ -152,6 +152,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     if errors:
         _print_errors(errors)
         return 2
+    if cfg.export.enabled:
+        return _export(cfg, cfg.export.path)
     try:
         result = RecoveryEngine().run(cfg, ConsoleReporter())
     except RecoveryError as exc:
@@ -176,6 +178,19 @@ def _print_export_advice(db_path: str, out_path: str) -> None:
         print("The built-in CPU recovery ('keepass-kdbx-recover run') is about as good here.")
 
 
+def _export(cfg: Config, out_path: str) -> int:
+    _print_export_advice(cfg.database.path, out_path)
+    try:
+        written = export_candidates(
+            cfg, out_path, on_progress=lambda n: print(f"  {n:,} written...")
+        )
+    except OSError as exc:
+        print(f"Error: {exc}")
+        return 3
+    print(f"Wrote {written:,} candidates to {out_path}")
+    return 0
+
+
 def cmd_export(args: argparse.Namespace) -> int:
     cfg = _read_config(args)
     if cfg is None:
@@ -187,17 +202,7 @@ def cmd_export(args: argparse.Namespace) -> int:
     if errors:
         _print_errors(errors)
         return 2
-
-    _print_export_advice(cfg.database.path, out_path)
-    try:
-        written = export_candidates(
-            cfg, out_path, on_progress=lambda n: print(f"  {n:,} written...")
-        )
-    except OSError as exc:
-        print(f"Error: {exc}")
-        return 3
-    print(f"Wrote {written:,} candidates to {out_path}")
-    return 0
+    return _export(cfg, out_path)
 
 
 def cmd_inspect(args: argparse.Namespace) -> int:

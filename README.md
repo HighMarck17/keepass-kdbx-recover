@@ -63,7 +63,8 @@ There are three sources of candidates. You can enable more than one; they are tr
 in the order mask, fragments, wordlist.
 
 **Mask: you remember the structure.** Placeholders follow the hashcat syntax and any
-other character is kept as typed.
+other character is kept as typed. An unknown placeholder such as `?x` is reported as
+an error.
 
 | Placeholder | Matches |
 | --- | --- |
@@ -72,6 +73,7 @@ other character is kept as typed.
 | `?d` | `0-9` |
 | `?s` | the common symbols `!@#$%^&*_-` |
 | `?a` | any of the above |
+| `??` | a literal `?` |
 
 ```bash
 # Summer0000 ... Summer9999
@@ -164,7 +166,8 @@ Ctrl+C stops a run.
 
 The wizard and the GUI write the config file for you, and it is plain TOML you can
 also edit by hand. [`config.example.toml`](config.example.toml) lists every key with
-a comment. The file is checked before any work starts, problems are reported as a
+a comment. With `export.enabled = true`, `run` and the GUI write the candidates to
+`export.path` instead of testing them. The file is checked before any work starts, problems are reported as a
 plain message with a non-zero exit code, and saving keeps your comments and any
 extra keys.
 

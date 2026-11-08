@@ -17,6 +17,7 @@ KIND_PROGRESS = "progress"
 KIND_FOUND = "found"
 KIND_FINISH = "finish"
 KIND_ERROR = "error"
+KIND_EXPORTED = "exported"
 
 
 @dataclass(frozen=True)
@@ -32,8 +33,9 @@ class Message:
 class TkReporter:
     """A ProgressReporter that enqueues messages for the Tk main loop.
 
-    ``error`` is not part of the ProgressReporter protocol; the worker wrapper
-    calls it to surface a RecoveryError (which the engine raises before on_start).
+    ``error`` and ``exported`` are not part of the ProgressReporter protocol; the
+    worker wrapper calls them to surface a RecoveryError (which the engine raises
+    before on_start) and the end of an export.
     """
 
     def __init__(self, message_queue: "queue.Queue[Message]") -> None:
@@ -53,6 +55,9 @@ class TkReporter:
 
     def error(self, text: str) -> None:
         self._queue.put(Message(KIND_ERROR, text=text))
+
+    def exported(self, text: str) -> None:
+        self._queue.put(Message(KIND_EXPORTED, text=text))
 
 
 @dataclass
@@ -104,6 +109,8 @@ def reduce(state: UiState, msg: Message) -> UiState:
         return replace(
             state, running=False, finished=True, error=msg.text, status_line=msg.text or ""
         )
+    if msg.kind == KIND_EXPORTED:
+        return replace(state, running=False, finished=True, status_line=msg.text or "")
     return state
 
 
@@ -116,6 +123,8 @@ def _log_line(msg: Message) -> str | None:
         return format_result(msg.found, msg.event)
     if msg.kind == KIND_ERROR:
         return f"Error: {msg.text}"
+    if msg.kind == KIND_EXPORTED:
+        return msg.text
     return None
 
 

@@ -6,6 +6,7 @@ Placeholders (hashcat convention):
     ?d  digits              0-9
     ?s  common symbols      !@#$%^&*_-
     ?a  any of the above    letters + digits + symbols
+    ??  a literal question mark
 """
 
 import string

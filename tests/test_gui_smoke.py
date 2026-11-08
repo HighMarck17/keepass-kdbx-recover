@@ -125,3 +125,25 @@ def test_loading_a_config_populates_the_form(root, tmp_path):
 
     app = KdbxRecoverApp(root, config_path=str(path))
     assert app.vars["db_path"].get() == "loaded.kdbx"
+
+
+def test_export_mode_writes_candidates_instead_of_running(root, tmp_path):
+    out = tmp_path / "cand.txt"
+    app = KdbxRecoverApp(root)
+    app.vars["fragments_enabled"].set(False)
+    app.vars["mask_enabled"].set(True)
+    app.vars["mask_pattern"].set("?d")
+    app.vars["export_enabled"].set(True)
+    app.vars["export_path"].set(str(out))
+    app._revalidate()
+    assert str(app.start_btn["state"]) == "normal"  # no database needed to export
+
+    app._on_start()
+    deadline = time.time() + 30
+    while app.running and time.time() < deadline:
+        root.update()
+        time.sleep(0.05)
+
+    assert app.running is False
+    assert out.read_text(encoding="utf-8").splitlines() == [str(d) for d in range(10)]
+    assert "Wrote 10 candidates" in app.state.status_line

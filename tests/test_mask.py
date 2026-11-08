@@ -2,7 +2,12 @@
 
 import string
 
-from keepass_kdbx_recover.mask import count_mask, gen_from_mask, parse_pattern
+from keepass_kdbx_recover.mask import (
+    count_mask,
+    find_unknown_placeholders,
+    gen_from_mask,
+    parse_pattern,
+)
 
 
 def test_parse_pattern_splits_placeholders_and_literals():
@@ -39,3 +44,15 @@ def test_gen_from_mask_count_matches_count_mask():
     generated = list(gen_from_mask(pattern))
     assert len(generated) == count_mask(pattern)
     assert len(set(generated)) == len(generated)  # products are unique
+
+
+def test_double_question_mark_is_a_literal_question_mark():
+    assert parse_pattern("??d") == [["?"], ["d"]]
+    assert list(gen_from_mask("a???d")) == [f"a?{d}" for d in string.digits]
+
+
+def test_find_unknown_placeholders():
+    assert find_unknown_placeholders("Summer?d?d") == []
+    assert find_unknown_placeholders("a??b") == []
+    assert find_unknown_placeholders("?z?d") == ["?z"]
+    assert find_unknown_placeholders("end?") == ["?"]

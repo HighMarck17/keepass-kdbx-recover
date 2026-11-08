@@ -8,6 +8,7 @@ password candidates, using constant memory. Dedup policy:
 """
 
 import math
+import threading
 from collections.abc import Callable, Iterator
 from os import PathLike
 
@@ -105,15 +106,19 @@ def export_candidates(
     path: PathArg,
     on_progress: Callable[[int], None] | None = None,
     progress_every: int = 500_000,
+    cancel: threading.Event | None = None,
 ) -> int:
     """Write all candidates to a file (one per line) for use as a hashcat wordlist.
 
     Returns the number of candidates written. ``on_progress`` (if given) is called
-    with the running count every ``progress_every`` lines.
+    with the running count every ``progress_every`` lines. Setting ``cancel`` stops
+    the export early and leaves a partial file.
     """
     written = 0
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         for candidate in build_candidates(cfg):
+            if cancel is not None and cancel.is_set():
+                break
             handle.write(candidate + "\n")
             written += 1
             if on_progress and written % progress_every == 0:

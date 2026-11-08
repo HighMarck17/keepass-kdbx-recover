@@ -15,6 +15,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 from .. import __version__
+from ..candidates import export_candidates
 from ..config import check_paths, default, load, save, validate
 from ..engine import RecoveryEngine, RecoveryError
 from ..inspector import GpuAdvice, format_inspection, inspect_file
@@ -372,7 +373,7 @@ class KdbxRecoverApp:
         self._clear_text(self.log)
         self.start_btn.configure(state="disabled")
         self.cancel_btn.configure(state="normal")
-        self.status_var.set("Running...")
+        self.status_var.set("Exporting..." if cfg.export.enabled else "Running...")
 
         reporter = TkReporter(self.queue)
         self.thread = threading.Thread(
@@ -382,11 +383,27 @@ class KdbxRecoverApp:
 
     def _worker(self, cfg, reporter, cancel) -> None:
         try:
-            RecoveryEngine().run(cfg, reporter, cancel)
+            if cfg.export.enabled:
+                self._export(cfg, reporter, cancel)
+            else:
+                RecoveryEngine().run(cfg, reporter, cancel)
         except RecoveryError as exc:
             reporter.error(str(exc))
         except Exception as exc:  # never let the worker die silently
             reporter.error(f"Unexpected error: {exc}")
+
+    @staticmethod
+    def _export(cfg, reporter, cancel) -> None:
+        path = cfg.export.path
+        try:
+            written = export_candidates(cfg, path, cancel=cancel)
+        except OSError as exc:
+            reporter.error(f"Cannot write {path}: {exc}")
+            return
+        if cancel.is_set():
+            reporter.exported(f"Export stopped after {written:,} candidates; {path} is incomplete.")
+        else:
+            reporter.exported(f"Wrote {written:,} candidates to {path}")
 
     def _poll(self) -> None:
         self.state, lines = drain(self.queue, self.state)

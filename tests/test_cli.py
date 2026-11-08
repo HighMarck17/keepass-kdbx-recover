@@ -125,3 +125,19 @@ def test_malformed_config_is_a_clean_config_error(tmp_path, capsys):
         code = main([*argv, "--config", str(cfgpath)])
         assert code == 2  # not a TOMLDecodeError traceback
         assert "config" in capsys.readouterr().out.lower()
+
+
+def test_run_with_export_enabled_writes_candidates_instead_of_testing(tmp_path):
+    cfg = default()
+    cfg.fragments.enabled = False
+    cfg.mask.enabled = True
+    cfg.mask.pattern = "?d"
+    cfg.export.enabled = True
+    cfg.export.path = str(tmp_path / "cand.txt")
+    cfgpath = tmp_path / "config.toml"
+    save(cfg, cfgpath)
+    code = main(["run", "--config", str(cfgpath)])  # no database needed
+    assert code == 0
+    assert (tmp_path / "cand.txt").read_text(encoding="utf-8").splitlines() == [
+        str(d) for d in range(10)
+    ]

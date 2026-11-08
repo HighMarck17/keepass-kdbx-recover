@@ -102,3 +102,14 @@ def test_drain_on_empty_queue_returns_state_unchanged():
     state_out, lines = drain(queue.Queue(), state_in)
     assert state_out == state_in
     assert lines == []
+
+
+def test_exported_message_finishes_the_run_with_its_text():
+    q = queue.Queue()
+    TkReporter(q).exported("Wrote 10 candidates to out.txt")
+    state, lines = drain(q, UiState(running=True))
+    assert state.finished is True
+    assert state.running is False
+    assert state.found is None
+    assert state.status_line == "Wrote 10 candidates to out.txt"
+    assert lines == ["Wrote 10 candidates to out.txt"]

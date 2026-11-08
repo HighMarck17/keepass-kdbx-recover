@@ -1,5 +1,7 @@
 """Tests for candidate composition, dedup policy, counting, and export."""
 
+import threading
+
 from keepass_kdbx_recover.candidates import build_candidates, count_total, export_candidates
 from keepass_kdbx_recover.config import default
 
@@ -77,3 +79,12 @@ def test_export_writes_one_per_line_and_returns_count(tmp_path):
     count = export_candidates(cfg_mask_only("?d"), out)
     assert count == 10
     assert out.read_text(encoding="utf-8").splitlines() == [str(d) for d in range(10)]
+
+
+def test_export_stops_when_cancelled(tmp_path):
+    out = tmp_path / "candidates.txt"
+    cancel = threading.Event()
+    cancel.set()
+    count = export_candidates(cfg_mask_only("?d?d"), out, cancel=cancel)
+    assert count == 0
+    assert out.read_text(encoding="utf-8") == ""

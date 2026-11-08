@@ -204,3 +204,31 @@ def test_save_preserves_user_comments_and_unknown_keys(tmp_path):
     assert "# MY CUSTOM NOTE" in out
     assert "my_key" in out
     assert 'path = "changed.kdbx"' in out
+
+
+def test_validate_rejects_unknown_mask_placeholder():
+    cfg = default()
+    cfg.mask.enabled = True
+    cfg.mask.pattern = "Summer?x?d"
+    assert any("?x" in e for e in validate(cfg))
+
+
+def test_validate_accepts_escaped_question_mark_in_mask():
+    cfg = default()
+    cfg.mask.enabled = True
+    cfg.mask.pattern = "why??"
+    assert validate(cfg) == []
+
+
+def test_validate_rejects_fixed_prefix_not_among_pieces():
+    cfg = default()
+    cfg.fragments.pieces = ["a", "b"]
+    cfg.fragments.fixed_prefix = "zzz"
+    assert any("fixed_prefix" in e for e in validate(cfg))
+
+
+def test_validate_accepts_fixed_prefix_among_pieces():
+    cfg = default()
+    cfg.fragments.pieces = ["a", "b"]
+    cfg.fragments.fixed_prefix = "a"
+    assert validate(cfg) == []
