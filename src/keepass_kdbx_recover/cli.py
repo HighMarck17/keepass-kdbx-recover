@@ -129,6 +129,15 @@ def load_config_with_overrides(args: argparse.Namespace) -> Config:
     return cfg
 
 
+def _read_config(args: argparse.Namespace) -> Config | None:
+    """Load the config with CLI overrides, or print why the file cannot be read."""
+    try:
+        return load_config_with_overrides(args)
+    except (OSError, ValueError) as exc:  # tomllib.TOMLDecodeError is a ValueError
+        print(f"Cannot read the config file {args.config}: {exc}")
+        return None
+
+
 def _print_errors(errors: list[str]) -> None:
     print("Configuration problems:")
     for err in errors:
@@ -136,7 +145,9 @@ def _print_errors(errors: list[str]) -> None:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    cfg = load_config_with_overrides(args)
+    cfg = _read_config(args)
+    if cfg is None:
+        return 2
     errors = validate(cfg) + check_paths(cfg)
     if errors:
         _print_errors(errors)
@@ -166,7 +177,9 @@ def _print_export_advice(db_path: str, out_path: str) -> None:
 
 
 def cmd_export(args: argparse.Namespace) -> int:
-    cfg = load_config_with_overrides(args)
+    cfg = _read_config(args)
+    if cfg is None:
+        return 2
     cfg.export.enabled = True
     out_path = args.out or cfg.export.path
 
@@ -191,7 +204,11 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     path = args.path
     if path is None:
         cfg_path = Path(args.config)
-        path = load(cfg_path).database.path if cfg_path.is_file() else ""
+        try:
+            path = load(cfg_path).database.path if cfg_path.is_file() else ""
+        except (OSError, ValueError) as exc:
+            print(f"Cannot read the config file {cfg_path}: {exc}")
+            return 2
     if not path:
         print("No database to inspect. Pass a path or set one in the config.")
         return 2

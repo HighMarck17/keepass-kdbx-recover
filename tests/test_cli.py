@@ -116,3 +116,12 @@ def test_export_writes_candidates_and_prints_advice(kdbx_db, tmp_path, capsys):
     assert out.read_text(encoding="utf-8").splitlines() == [str(d) for d in range(10)]
     # Argon2 database -> the advice must warn that a GPU gives little advantage.
     assert "little" in text or "memory-hard" in text
+
+
+def test_malformed_config_is_a_clean_config_error(tmp_path, capsys):
+    cfgpath = tmp_path / "config.toml"
+    cfgpath.write_text("[database\npath = 'x'\n", encoding="utf-8")
+    for argv in (["run"], ["export"], ["inspect"]):
+        code = main([*argv, "--config", str(cfgpath)])
+        assert code == 2  # not a TOMLDecodeError traceback
+        assert "config" in capsys.readouterr().out.lower()
