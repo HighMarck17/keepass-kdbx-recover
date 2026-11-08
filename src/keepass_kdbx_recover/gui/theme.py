@@ -25,6 +25,8 @@ ERROR = "#b91c1c"
 ADVICE_BIG_FG = "#8a5a00"
 ADVICE_LITTLE_FG = "#15803d"
 ADVICE_UNKNOWN_FG = MUTED
+OK_FG = "#15803d"  # "ready to run" guidance
+WARN_FG = "#8a5a00"  # "here is what to fix" guidance (amber, not alarming red)
 
 
 def _pick_family(preferred: str, fallback: str) -> str:
@@ -76,6 +78,13 @@ def apply_theme(root: tk.Tk) -> ttk.Style:
         background=[("!disabled", ACCENT), ("active", ACCENT_ACTIVE)],
         foreground=[("!disabled", "#ffffff")],
     )
+
+    # Guidance lines: a neutral step intro, a green "ready" state, and an amber
+    # "here is what to fix" state (deliberately not alarming red; red is reserved
+    # for hard errors).
+    style.configure("Intro.TLabel", foreground=TEXT, background=BG)
+    style.configure("Ok.TLabel", foreground=OK_FG, background=BG, font=(ui_family, 10, "bold"))
+    style.configure("Warn.TLabel", foreground=WARN_FG, background=BG, font=(ui_family, 10, "bold"))
 
     style.configure("Error.TLabel", foreground=ERROR, background=BG)
     style.configure("AdviceBig.TLabel", foreground=ADVICE_BIG_FG, background=BG,

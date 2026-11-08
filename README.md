@@ -174,11 +174,17 @@ extra keys.
 
 ## GUI
 
-The window has four tabs: **Setup** (database, keyfile, sources and their options,
-load and save the config; Start stays disabled until the settings are valid),
-**Recovery** (start, cancel, progress, the password with a copy button, a log),
-**Inspect** (the same report as `inspect`) and **Help** (a short cheatsheet).
-Recovery runs in the background, and closing the window cancels it.
+The window is a short, guided two-step flow. **Setup** gathers your database (and a
+keyfile only if your vault uses one) and asks what you remember: turn on *Its shape*
+(a mask), *Some pieces* (fragments) or *A list* (a wordlist), and each one's details
+appear only when you switch it on. A banner at the top always says what to do next,
+or what still needs fixing, so Start is never greyed out without an explanation.
+**Run** starts the search and shows progress, the recovered password with a Copy
+button, and plain next-step advice whether it is found or not. **Check database**
+reads the header and reports the KDF with advice on whether a GPU would help, and
+**Help** is a short cheatsheet. Recovery runs in the background, and closing the
+window cancels it. Advanced settings (workers, progress interval, writing the
+candidate list to a file, and loading or saving a setup) sit in their own section.
 
 ## Development
 

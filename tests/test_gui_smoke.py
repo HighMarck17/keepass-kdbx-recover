@@ -10,6 +10,7 @@ import time
 import pytest
 
 tk = pytest.importorskip("tkinter")
+from tkinter import ttk  # noqa: E402
 
 from keepass_kdbx_recover.config import default, save  # noqa: E402
 from keepass_kdbx_recover.gui.app import KdbxRecoverApp  # noqa: E402
@@ -48,7 +49,20 @@ def test_app_builds_the_four_tabs(root):
     app = KdbxRecoverApp(root)
     root.update_idletasks()
     tabs = [app.notebook.tab(tab_id, "text") for tab_id in app.notebook.tabs()]
-    assert tabs == ["Setup", "Recovery", "Inspect", "Help"]
+    assert tabs == ["Setup", "Run", "Check database", "Help"]
+
+
+def test_mode_details_appear_only_when_the_mode_is_enabled(root):
+    # Progressive disclosure: a mode's detail fields are removed from the layout
+    # until the mode is on. winfo_ismapped is unreliable for a withdrawn root, so
+    # we check grid management instead (empty manager == grid_remove'd).
+    app = KdbxRecoverApp(root)
+    app.vars["mask_enabled"].set(False)
+    root.update_idletasks()
+    assert app.mask_detail.winfo_manager() == ""
+    app.vars["mask_enabled"].set(True)
+    root.update_idletasks()
+    assert app.mask_detail.winfo_manager() == "grid"
 
 
 def test_poll_cycle_reflects_a_found_password(root):
@@ -65,6 +79,42 @@ def test_poll_cycle_reflects_a_found_password(root):
     assert app.found_var.get() == "secret"
     assert app.running is False
     assert str(app.copy_btn["state"]) == "normal"
+
+
+def test_setup_form_is_scrollable_and_wheel_handler_is_safe(root):
+    # The form groups live inside a Canvas scroll area with a ttk.Scrollbar, and the
+    # scroll plumbing must run without raising. (A withdrawn root reports a ~1px
+    # viewport, so actual visibility is covered by the pure needs_scrollbar test.)
+    app = KdbxRecoverApp(root)
+    root.update_idletasks()
+    assert isinstance(app.setup_canvas, tk.Canvas)
+    assert isinstance(app.setup_vbar, ttk.Scrollbar)
+    assert app.db_entry.winfo_exists()  # the form was built into the canvas
+    app._update_setup_scroll()          # must not raise
+    # The scrollbar is mapped exactly when the form is marked scrollable.
+    assert (app.setup_vbar.winfo_manager() != "") == app._setup_scroll_on
+    # A synthetic wheel event is a no-op while nothing scrolls, and never raises.
+    app._setup_scroll_on = False
+    assert app._on_setup_wheel(type("E", (), {"num": 0, "delta": -120})()) is None
+
+
+def test_outcome_line_persists_across_revalidation_until_the_form_changes(root):
+    # The "Found it / Not found" line must survive a tab switch (which revalidates)
+    # and only clear when the user edits the form.
+    app = KdbxRecoverApp(root)
+    event = ProgressEvent(tested=1, total=1, elapsed=0.1)
+    app.running = True
+    app.queue.put(Message(KIND_START, total=1))
+    app.queue.put(Message(KIND_FOUND, password="secret", event=event))
+    app.queue.put(Message(KIND_FINISH, found="secret", event=event))
+    app._poll()
+    assert app.run_guidance["text"].startswith("Found it")
+
+    app._revalidate()  # as a tab switch would
+    assert app.run_guidance["text"].startswith("Found it")
+
+    app.vars["mask_pattern"].set("abc")  # editing the form clears the outcome
+    assert not app.run_guidance["text"].startswith("Found it")
 
 
 def test_enable_dpi_awareness_never_raises():
