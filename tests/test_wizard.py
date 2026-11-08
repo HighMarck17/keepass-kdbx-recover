@@ -87,3 +87,22 @@ def test_run_wizard_handles_non_numeric_min_fragments(tmp_path):
     cfg = run_wizard(str(tmp_path / "config.toml"), in_=lambda _p: next(answers),
                      out=lambda _line: None)
     assert cfg.fragments.min_fragments >= 1
+
+
+def test_run_wizard_defaults_min_fragments_to_one(tmp_path):
+    # Same default as the config: single pieces and partial subsets are tried too,
+    # so one wrongly remembered piece does not make the search miss.
+    answers = iter([
+        str(tmp_path / "db.kdbx"), "", "1",  # fragments mode
+        "a,b,c",                              # pieces
+        "y", "n", "",                         # permutations, case variants, fixed prefix
+        "",                                   # min fragments: accept the default
+    ])
+    cfg = run_wizard(str(tmp_path / "config.toml"), in_=lambda _p: next(answers),
+                     out=lambda _line: None)
+    assert cfg.fragments.min_fragments == 1
+
+
+def test_config_from_answers_defaults_min_fragments_to_one():
+    cfg = config_from_answers({"mode": "fragments", "pieces": ["a", "b", "c"]})
+    assert cfg.fragments.min_fragments == 1

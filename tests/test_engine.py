@@ -3,7 +3,9 @@
 import threading
 
 import pytest
+from pykeepass.exceptions import CredentialsError
 
+from keepass_kdbx_recover import engine
 from keepass_kdbx_recover.config import default
 from keepass_kdbx_recover.engine import RecoveryEngine, RecoveryError, RecoveryResult
 
@@ -84,5 +86,29 @@ def test_engine_raises_recovery_error_on_corrupt_database(tmp_path):
     bad = tmp_path / "bad.kdbx"
     bad.write_bytes(b"this is not a real kdbx database")
     cfg = make_cfg(str(bad), ["x"])
+    with pytest.raises(RecoveryError):
+        RecoveryEngine().run(cfg, RecordingReporter())
+
+
+def test_engine_finds_password_with_worker_processes(kdbx_db):
+    db_path, password = kdbx_db
+    cfg = make_cfg(db_path, ["nope1", "nope2", password, "nope3"], workers=2)
+    result = RecoveryEngine().run(cfg, RecordingReporter())
+    assert result.found == password
+
+
+def test_engine_stops_when_an_attempt_fails_for_another_reason(kdbx_db, monkeypatch):
+    # Only a wrong password is a miss: any other failure must stop the run, or the
+    # real password could be skipped without ever being tested. make_cfg uses one
+    # worker, so the attempts run in this process and see the patched PyKeePass.
+    db_path, password = kdbx_db
+
+    def fake_open(path, password=None, keyfile=None):
+        if password == "boom":
+            raise MemoryError("cannot allocate the KDF memory")
+        raise CredentialsError("wrong password")
+
+    monkeypatch.setattr(engine, "PyKeePass", fake_open)
+    cfg = make_cfg(db_path, ["nope", "boom", password])
     with pytest.raises(RecoveryError):
         RecoveryEngine().run(cfg, RecordingReporter())

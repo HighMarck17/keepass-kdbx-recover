@@ -3,7 +3,8 @@
 Combines the enabled sources (mask, fragments, wordlist) into a single stream of
 password candidates, using constant memory. Dedup policy:
     - mask products are already unique -> not deduplicated
-    - fragments are a small set -> deduplicated so the reported total is accurate
+    - fragments -> deduplicated so the reported total is accurate, but only while
+      the space is small enough to count; a larger space is streamed as-is
     - wordlists can be huge -> streamed as-is, not deduplicated
 """
 
@@ -34,17 +35,23 @@ def build_candidates(cfg: Config) -> Iterator[str]:
         yield from gen_from_mask(cfg.mask.pattern)
 
     if cfg.fragments.enabled:
-        seen: set[str] = set()
-        for candidate in gen_from_fragments(
+        stream = gen_from_fragments(
             cfg.fragments.pieces,
             cfg.fragments.permutations,
             cfg.fragments.case_variants,
             cfg.fragments.min_fragments,
             fixed_prefix=_fragment_prefix(cfg),
-        ):
-            if candidate not in seen:
-                seen.add(candidate)
-                yield candidate
+        )
+        if _fragment_upper_bound(cfg) > _COUNT_CAP:
+            # Too big to count: a dedup set would grow for the whole run, so a
+            # rare repeated candidate is tested twice instead.
+            yield from stream
+        else:
+            seen: set[str] = set()
+            for candidate in stream:
+                if candidate not in seen:
+                    seen.add(candidate)
+                    yield candidate
 
     if cfg.wordlist.enabled:
         yield from gen_from_wordlist(cfg.wordlist.path)

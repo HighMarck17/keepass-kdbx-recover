@@ -33,7 +33,7 @@ def config_from_answers(answers: dict) -> Config:
         cfg.fragments.permutations = answers.get("permutations", True)
         cfg.fragments.case_variants = answers.get("case_variants", False)
         cfg.fragments.fixed_prefix = answers.get("fixed_prefix", "")
-        cfg.fragments.min_fragments = answers.get("min_fragments", len(pieces) or 1)
+        cfg.fragments.min_fragments = answers.get("min_fragments", 1)
     return cfg
 
 
@@ -87,7 +87,7 @@ def run_wizard(
         answers["permutations"] = _ask_bool(in_, "Try all orders of the fragments?", True)
         answers["case_variants"] = _ask_bool(in_, "Also try upper/lower/Capitalized?", False)
         answers["fixed_prefix"] = _ask(in_, "A fragment always used first (empty for none)")
-        default_min = str(len(pieces) or 1)
+        default_min = "1"
         raw_min = _ask(in_, "Minimum fragments per attempt", default_min)
         try:
             answers["min_fragments"] = int(raw_min)

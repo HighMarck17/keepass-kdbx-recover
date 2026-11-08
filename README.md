@@ -84,7 +84,8 @@ keepass-kdbx-recover run --db vault.kdbx --mask "Summer?d?d?d?d"
 `--min-fragments` (default 1) up to all of them. `--permute` also tries every order
 and `--case-variants` adds the lower, UPPER and Capitalized form of each piece. In
 the config file, `fragments.fixed_prefix` keeps one piece always first. Repeated
-candidates are dropped.
+candidates are dropped as long as the space is small enough to count (up to
+500,000).
 
 ```bash
 keepass-kdbx-recover run --db vault.kdbx --fragments "sun,flower,42" --permute

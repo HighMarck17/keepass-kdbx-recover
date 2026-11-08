@@ -44,17 +44,18 @@ def resolve_workers(cfg: Config) -> int:
 
 
 def try_password(args: tuple[str, str | None, str]) -> tuple[bool, str]:
-    """Worker: return (opened, password). Module-level so it is picklable."""
+    """Worker: return (opened, password). Module-level so it is picklable.
+
+    Only a wrong password counts as a miss. Any other error (for example running
+    out of memory for the KDF) propagates, so the run stops instead of skipping a
+    candidate that was never really tested.
+    """
     db_path, keyfile, pwd = args
     try:
         PyKeePass(db_path, password=pwd, keyfile=keyfile)
-        return True, pwd
     except CredentialsError:
         return False, pwd
-    except Exception:
-        # Any other error during a worker attempt is treated as a miss here;
-        # systematic problems are caught up-front by the preflight probe.
-        return False, pwd
+    return True, pwd
 
 
 class RecoveryEngine:
@@ -133,6 +134,11 @@ class RecoveryEngine:
                             last_report = now
                 except KeyboardInterrupt:
                     pass
+                except Exception as exc:
+                    raise RecoveryError(
+                        f"Stopped because a candidate could not be tested: "
+                        f"{type(exc).__name__}: {exc}"
+                    ) from exc
 
         elapsed = time.time() - start
         reporter.on_finish(found, ProgressEvent(tested, total, elapsed, found))

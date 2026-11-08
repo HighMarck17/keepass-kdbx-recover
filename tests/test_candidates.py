@@ -1,5 +1,6 @@
 """Tests for candidate composition, dedup policy, counting, and export."""
 
+import itertools
 import threading
 
 from keepass_kdbx_recover.candidates import build_candidates, count_total, export_candidates
@@ -88,3 +89,11 @@ def test_export_stops_when_cancelled(tmp_path):
     count = export_candidates(cfg_mask_only("?d?d"), out, cancel=cancel)
     assert count == 0
     assert out.read_text(encoding="utf-8") == ""
+
+
+def test_huge_fragment_space_streams_without_a_dedup_set():
+    # Above the count cap the stream is not deduplicated, so memory stays constant
+    # on long runs: the repeated piece "x" comes out twice.
+    c = cfg_fragments_only(["x", "x", *[str(i) for i in range(8)]], min_fragments=1)
+    assert count_total(c) is None  # the space is too big to count
+    assert list(itertools.islice(build_candidates(c), 2)) == ["x", "x"]
